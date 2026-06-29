@@ -57,6 +57,11 @@ mrr = kpi.monthly_recurring_revenue(
     avg_revenue_per_customer=50
 )
 
+# Calculate total MRR by summing individual subscription revenues
+total_mrr = kpi.total_monthly_recurring_revenue(
+    subscription_revenues=[50, 75, 120, 30]
+)
+
 # Calculate ARR
 arr = kpi.annual_recurring_revenue(
     paying_customers=1000,
@@ -77,6 +82,114 @@ cac = kpi.customer_acquisition_cost(
 roi = kpi.roi(
     revenue=150000,
     costs=100000
+)
+```
+
+### Profitability Metrics
+```python
+# Operating margin (EBIT / revenue)
+op_margin = kpi.operating_margin(
+    operating_income=2000,
+    revenue=10000
+)
+
+# Net profit margin (net income / revenue)
+net_margin = kpi.net_profit_margin(
+    net_income=1500,
+    revenue=10000
+)
+
+# EBITDA margin
+ebitda = kpi.ebitda_margin(
+    ebitda=3000,
+    revenue=10000
+)
+
+# Days Sales Outstanding (collection efficiency)
+dso = kpi.days_sales_outstanding(
+    accounts_receivable=50000,
+    total_credit_sales=500000,
+    days=365
+)
+```
+
+## Growth & Retention Metrics
+
+### Revenue Retention
+```python
+# Net Revenue Retention (includes expansion, net of churn/contraction)
+nrr = kpi.net_revenue_retention(
+    starting_revenue=10000,
+    expansion_revenue=2000,
+    contraction_revenue=500,
+    churned_revenue=1000
+)
+
+# Gross Revenue Retention (excludes expansion)
+grr = kpi.gross_revenue_retention(
+    starting_revenue=10000,
+    contraction_revenue=500,
+    churned_revenue=1000
+)
+```
+
+### Growth Efficiency
+```python
+# Revenue growth rate (period over period)
+growth = kpi.revenue_growth_rate(
+    current_revenue=12000,
+    previous_revenue=10000
+)
+
+# SaaS Quick Ratio (revenue gained vs. revenue lost)
+quick_ratio = kpi.saas_quick_ratio(
+    new_mrr=500,
+    expansion_mrr=200,
+    churned_mrr=100,
+    contraction_mrr=75
+)
+
+# Rule of 40 (growth rate + profit margin should be >= 40)
+rule40 = kpi.rule_of_40(
+    revenue_growth_rate=25,
+    profit_margin=20
+)
+
+# Magic Number (sales & marketing efficiency)
+magic = kpi.magic_number(
+    current_quarter_revenue=1300,
+    previous_quarter_revenue=1000,
+    sales_marketing_spend=600
+)
+```
+
+### Account & Risk Metrics
+```python
+# Average Revenue Per Account (ARPA)
+arpa = kpi.average_revenue_per_account(
+    total_revenue=50000,
+    total_accounts=250
+)
+
+# Customer concentration risk (share of revenue from top customers)
+concentration = kpi.customer_concentration(
+    top_customer_revenue=4000,
+    total_revenue=10000
+)
+```
+
+## Conversion & Web Metrics
+```python
+# Bounce rate (single-page sessions / total sessions)
+bounce = kpi.bounce_rate(
+    single_page_sessions=400,
+    total_sessions=1000
+)
+
+# Cart abandonment rate
+abandonment = kpi.cart_abandonment_rate(
+    completed_purchases=300,
+    initiated_checkouts=1000
 )
 ```
 
@@ -142,8 +255,12 @@ The health score is calculated based on weighted components:
 
 - **Financial Health (30%)**
   - Gross Margin
+  - Net Profit Margin
   - ROI
   - Revenue Growth
+
+- **Revenue Retention**
+  - Net Revenue Retention (NRR)
 
 - **Engagement Health (40%)**
   - NPS

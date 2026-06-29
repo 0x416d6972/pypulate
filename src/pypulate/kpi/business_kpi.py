@@ -264,6 +264,35 @@ def monthly_recurring_revenue(
     
     return result
 
+def total_monthly_recurring_revenue(
+    subscription_revenues: ArrayLike
+) -> float:
+    """
+    Calculate the total Monthly Recurring Revenue (MRR) by summing individual subscriptions.
+
+    Total MRR is the sum of the normalized monthly revenue of every active
+    subscription. Use this when you have the monthly revenue of each subscription
+    (or customer) and want a single aggregated MRR figure.
+
+    Parameters
+    ----------
+    subscription_revenues : array-like
+        Monthly recurring revenue of each active subscription
+
+    Returns
+    -------
+    float
+        Total Monthly Recurring Revenue
+
+    Examples
+    --------
+    >>> total_monthly_recurring_revenue([50, 60, 70])
+    180.0
+    """
+    subscription_revenues_arr = _ensure_array(subscription_revenues)
+
+    return float(np.sum(subscription_revenues_arr))
+
 def annual_recurring_revenue(
     paying_customers: ArrayLike,
     avg_revenue_per_customer: ArrayLike
@@ -1183,5 +1212,621 @@ def roi(
     
     if (np.isscalar(revenue) and np.isscalar(costs)):
         return float(result[0])
-    
-    return result 
+
+    return result
+
+def net_revenue_retention(
+    starting_revenue: ArrayLike,
+    expansion_revenue: ArrayLike,
+    contraction_revenue: ArrayLike,
+    churned_revenue: ArrayLike
+) -> Union[float, NDArray[np.float64]]:
+    """
+    Calculate Net Revenue Retention (NRR).
+
+    NRR (also called Net Dollar Retention) measures the percentage of recurring
+    revenue retained from existing customers over a period, including expansion
+    and net of contraction and churn. A value above 100% indicates that
+    expansion outpaces lost revenue.
+
+    Parameters
+    ----------
+    starting_revenue : array-like
+        Recurring revenue from existing customers at the start of the period
+    expansion_revenue : array-like
+        Additional revenue from upsells/cross-sells to existing customers
+    contraction_revenue : array-like
+        Revenue lost from downgrades by existing customers
+    churned_revenue : array-like
+        Revenue lost from customers who cancelled
+
+    Returns
+    -------
+    float or numpy.ndarray
+        Net Revenue Retention as a percentage
+
+    Examples
+    --------
+    >>> net_revenue_retention(10000, 2000, 500, 1000)
+    105.0
+    """
+    starting_arr = _ensure_array(starting_revenue)
+    expansion_arr = _ensure_array(expansion_revenue)
+    contraction_arr = _ensure_array(contraction_revenue)
+    churned_arr = _ensure_array(churned_revenue)
+
+    retained_revenue = starting_arr + expansion_arr - contraction_arr - churned_arr
+
+    result = np.zeros_like(starting_arr, dtype=np.float64)
+
+    non_zero_mask = starting_arr != 0
+    result[non_zero_mask] = (retained_revenue[non_zero_mask] / starting_arr[non_zero_mask]) * 100.0
+
+    if (np.isscalar(starting_revenue) and
+        np.isscalar(expansion_revenue) and
+        np.isscalar(contraction_revenue) and
+        np.isscalar(churned_revenue)):
+        return float(result[0])
+
+    return result
+
+def gross_revenue_retention(
+    starting_revenue: ArrayLike,
+    contraction_revenue: ArrayLike,
+    churned_revenue: ArrayLike
+) -> Union[float, NDArray[np.float64]]:
+    """
+    Calculate Gross Revenue Retention (GRR).
+
+    GRR measures the percentage of recurring revenue retained from existing
+    customers, excluding any expansion. It is capped at 100% and reflects how
+    well a business holds on to its baseline revenue.
+
+    Parameters
+    ----------
+    starting_revenue : array-like
+        Recurring revenue from existing customers at the start of the period
+    contraction_revenue : array-like
+        Revenue lost from downgrades by existing customers
+    churned_revenue : array-like
+        Revenue lost from customers who cancelled
+
+    Returns
+    -------
+    float or numpy.ndarray
+        Gross Revenue Retention as a percentage
+
+    Examples
+    --------
+    >>> gross_revenue_retention(10000, 500, 1000)
+    85.0
+    """
+    starting_arr = _ensure_array(starting_revenue)
+    contraction_arr = _ensure_array(contraction_revenue)
+    churned_arr = _ensure_array(churned_revenue)
+
+    retained_revenue = starting_arr - contraction_arr - churned_arr
+
+    result = np.zeros_like(starting_arr, dtype=np.float64)
+
+    non_zero_mask = starting_arr != 0
+    result[non_zero_mask] = (retained_revenue[non_zero_mask] / starting_arr[non_zero_mask]) * 100.0
+
+    if (np.isscalar(starting_revenue) and
+        np.isscalar(contraction_revenue) and
+        np.isscalar(churned_revenue)):
+        return float(result[0])
+
+    return result
+
+def revenue_growth_rate(
+    current_revenue: ArrayLike,
+    previous_revenue: ArrayLike
+) -> Union[float, NDArray[np.float64]]:
+    """
+    Calculate Revenue Growth Rate.
+
+    Revenue Growth Rate measures the percentage change in revenue between two
+    periods (e.g., month-over-month or year-over-year).
+
+    Parameters
+    ----------
+    current_revenue : array-like
+        Revenue in the current period
+    previous_revenue : array-like
+        Revenue in the previous period
+
+    Returns
+    -------
+    float or numpy.ndarray
+        Revenue Growth Rate as a percentage
+
+    Examples
+    --------
+    >>> revenue_growth_rate(12000, 10000)
+    20.0
+    """
+    current_arr = _ensure_array(current_revenue)
+    previous_arr = _ensure_array(previous_revenue)
+
+    result = np.zeros_like(previous_arr, dtype=np.float64)
+
+    non_zero_mask = previous_arr != 0
+    result[non_zero_mask] = ((current_arr[non_zero_mask] - previous_arr[non_zero_mask]) / previous_arr[non_zero_mask]) * 100.0
+
+    if (np.isscalar(current_revenue) and np.isscalar(previous_revenue)):
+        return float(result[0])
+
+    return result
+
+def saas_quick_ratio(
+    new_mrr: ArrayLike,
+    expansion_mrr: ArrayLike,
+    churned_mrr: ArrayLike,
+    contraction_mrr: ArrayLike
+) -> Union[float, NDArray[np.float64]]:
+    """
+    Calculate the SaaS Quick Ratio.
+
+    The SaaS Quick Ratio measures growth efficiency by comparing revenue gained
+    (new and expansion MRR) to revenue lost (churned and contraction MRR).
+    A ratio above 4 is generally considered healthy.
+
+    Parameters
+    ----------
+    new_mrr : array-like
+        New MRR added from new customers
+    expansion_mrr : array-like
+        Additional MRR from existing customers (upsell/cross-sell)
+    churned_mrr : array-like
+        MRR lost from cancelled customers
+    contraction_mrr : array-like
+        MRR lost from downgrades
+
+    Returns
+    -------
+    float or numpy.ndarray
+        SaaS Quick Ratio (inf when there is no lost MRR)
+
+    Examples
+    --------
+    >>> saas_quick_ratio(500, 200, 100, 75)
+    4.0
+    """
+    new_arr = _ensure_array(new_mrr)
+    expansion_arr = _ensure_array(expansion_mrr)
+    churned_arr = _ensure_array(churned_mrr)
+    contraction_arr = _ensure_array(contraction_mrr)
+
+    gained = new_arr + expansion_arr
+    lost = churned_arr + contraction_arr
+
+    result = np.full_like(lost, np.inf, dtype=np.float64)
+
+    non_zero_mask = lost != 0
+    result[non_zero_mask] = gained[non_zero_mask] / lost[non_zero_mask]
+
+    if (np.isscalar(new_mrr) and
+        np.isscalar(expansion_mrr) and
+        np.isscalar(churned_mrr) and
+        np.isscalar(contraction_mrr)):
+        return float(result[0])
+
+    return result
+
+def rule_of_40(
+    revenue_growth_rate: ArrayLike,
+    profit_margin: ArrayLike
+) -> Union[float, NDArray[np.float64]]:
+    """
+    Calculate the Rule of 40 score.
+
+    The Rule of 40 states that a healthy software company's revenue growth rate
+    plus its profit margin should be at least 40%. This function returns the
+    combined score so it can be compared against that 40 threshold.
+
+    Parameters
+    ----------
+    revenue_growth_rate : array-like
+        Revenue growth rate as a percentage
+    profit_margin : array-like
+        Profit margin as a percentage (e.g., EBITDA or free cash flow margin)
+
+    Returns
+    -------
+    float or numpy.ndarray
+        Rule of 40 score (growth rate + profit margin)
+
+    Examples
+    --------
+    >>> rule_of_40(25, 20)
+    45.0
+    """
+    growth_arr = _ensure_array(revenue_growth_rate)
+    margin_arr = _ensure_array(profit_margin)
+
+    result = growth_arr + margin_arr
+
+    if (np.isscalar(revenue_growth_rate) and np.isscalar(profit_margin)):
+        return float(result[0])
+
+    return result
+
+def magic_number(
+    current_quarter_revenue: ArrayLike,
+    previous_quarter_revenue: ArrayLike,
+    sales_marketing_spend: ArrayLike
+) -> Union[float, NDArray[np.float64]]:
+    """
+    Calculate the SaaS Magic Number.
+
+    The Magic Number measures sales and marketing efficiency by comparing the
+    annualized increase in revenue to the prior period's sales and marketing
+    spend. A value above 0.75 generally indicates efficient growth worth
+    investing in further.
+
+    Parameters
+    ----------
+    current_quarter_revenue : array-like
+        Revenue in the current quarter
+    previous_quarter_revenue : array-like
+        Revenue in the previous quarter
+    sales_marketing_spend : array-like
+        Sales and marketing spend in the previous quarter
+
+    Returns
+    -------
+    float or numpy.ndarray
+        Magic Number (inf when there is no sales and marketing spend)
+
+    Examples
+    --------
+    >>> magic_number(1300, 1000, 600)
+    2.0
+    """
+    current_arr = _ensure_array(current_quarter_revenue)
+    previous_arr = _ensure_array(previous_quarter_revenue)
+    spend_arr = _ensure_array(sales_marketing_spend)
+
+    annualized_new_revenue = (current_arr - previous_arr) * 4.0
+
+    result = np.full_like(spend_arr, np.inf, dtype=np.float64)
+
+    non_zero_mask = spend_arr != 0
+    result[non_zero_mask] = annualized_new_revenue[non_zero_mask] / spend_arr[non_zero_mask]
+
+    if (np.isscalar(current_quarter_revenue) and
+        np.isscalar(previous_quarter_revenue) and
+        np.isscalar(sales_marketing_spend)):
+        return float(result[0])
+
+    return result
+
+def operating_margin(
+    operating_income: ArrayLike,
+    revenue: ArrayLike
+) -> Union[float, NDArray[np.float64]]:
+    """
+    Calculate Operating Margin.
+
+    Operating Margin is the percentage of revenue left after paying for variable
+    and operating costs, before interest and taxes.
+
+    Parameters
+    ----------
+    operating_income : array-like
+        Operating income (EBIT)
+    revenue : array-like
+        Total revenue
+
+    Returns
+    -------
+    float or numpy.ndarray
+        Operating Margin as a percentage
+
+    Examples
+    --------
+    >>> operating_margin(2000, 10000)
+    20.0
+    """
+    operating_income_arr = _ensure_array(operating_income)
+    revenue_arr = _ensure_array(revenue)
+
+    result = np.zeros_like(revenue_arr, dtype=np.float64)
+
+    non_zero_mask = revenue_arr != 0
+    result[non_zero_mask] = (operating_income_arr[non_zero_mask] / revenue_arr[non_zero_mask]) * 100.0
+
+    if (np.isscalar(operating_income) and np.isscalar(revenue)):
+        return float(result[0])
+
+    return result
+
+def net_profit_margin(
+    net_income: ArrayLike,
+    revenue: ArrayLike
+) -> Union[float, NDArray[np.float64]]:
+    """
+    Calculate Net Profit Margin.
+
+    Net Profit Margin is the percentage of revenue that remains as profit after
+    all expenses, including interest and taxes, have been deducted.
+
+    Parameters
+    ----------
+    net_income : array-like
+        Net income (bottom-line profit)
+    revenue : array-like
+        Total revenue
+
+    Returns
+    -------
+    float or numpy.ndarray
+        Net Profit Margin as a percentage
+
+    Examples
+    --------
+    >>> net_profit_margin(1500, 10000)
+    15.0
+    """
+    net_income_arr = _ensure_array(net_income)
+    revenue_arr = _ensure_array(revenue)
+
+    result = np.zeros_like(revenue_arr, dtype=np.float64)
+
+    non_zero_mask = revenue_arr != 0
+    result[non_zero_mask] = (net_income_arr[non_zero_mask] / revenue_arr[non_zero_mask]) * 100.0
+
+    if (np.isscalar(net_income) and np.isscalar(revenue)):
+        return float(result[0])
+
+    return result
+
+def ebitda_margin(
+    ebitda: ArrayLike,
+    revenue: ArrayLike
+) -> Union[float, NDArray[np.float64]]:
+    """
+    Calculate EBITDA Margin.
+
+    EBITDA Margin is earnings before interest, taxes, depreciation, and
+    amortization expressed as a percentage of revenue. It is a measure of
+    operating profitability independent of capital structure.
+
+    Parameters
+    ----------
+    ebitda : array-like
+        Earnings before interest, taxes, depreciation, and amortization
+    revenue : array-like
+        Total revenue
+
+    Returns
+    -------
+    float or numpy.ndarray
+        EBITDA Margin as a percentage
+
+    Examples
+    --------
+    >>> ebitda_margin(3000, 10000)
+    30.0
+    """
+    ebitda_arr = _ensure_array(ebitda)
+    revenue_arr = _ensure_array(revenue)
+
+    result = np.zeros_like(revenue_arr, dtype=np.float64)
+
+    non_zero_mask = revenue_arr != 0
+    result[non_zero_mask] = (ebitda_arr[non_zero_mask] / revenue_arr[non_zero_mask]) * 100.0
+
+    if (np.isscalar(ebitda) and np.isscalar(revenue)):
+        return float(result[0])
+
+    return result
+
+def average_revenue_per_account(
+    total_revenue: ArrayLike,
+    total_accounts: ArrayLike
+) -> Union[float, NDArray[np.float64]]:
+    """
+    Calculate Average Revenue Per Account (ARPA).
+
+    ARPA measures the average revenue generated per account, which is useful in
+    B2B contexts where a single account may include multiple users or seats.
+
+    Parameters
+    ----------
+    total_revenue : array-like
+        Total revenue for the period
+    total_accounts : array-like
+        Total number of accounts
+
+    Returns
+    -------
+    float or numpy.ndarray
+        Average Revenue Per Account
+
+    Examples
+    --------
+    >>> average_revenue_per_account(50000, 250)
+    200.0
+    """
+    total_revenue_arr = _ensure_array(total_revenue)
+    total_accounts_arr = _ensure_array(total_accounts)
+
+    result = np.zeros_like(total_accounts_arr, dtype=np.float64)
+
+    non_zero_mask = total_accounts_arr != 0
+    result[non_zero_mask] = total_revenue_arr[non_zero_mask] / total_accounts_arr[non_zero_mask]
+
+    if (np.isscalar(total_revenue) and np.isscalar(total_accounts)):
+        return float(result[0])
+
+    return result
+
+def customer_concentration(
+    top_customer_revenue: ArrayLike,
+    total_revenue: ArrayLike
+) -> Union[float, NDArray[np.float64]]:
+    """
+    Calculate Customer Concentration Risk.
+
+    Customer Concentration measures the share of total revenue that comes from
+    the largest customer or a group of top customers. A high concentration
+    indicates greater revenue risk if those customers leave.
+
+    Parameters
+    ----------
+    top_customer_revenue : array-like
+        Revenue from the top customer(s)
+    total_revenue : array-like
+        Total revenue across all customers
+
+    Returns
+    -------
+    float or numpy.ndarray
+        Customer Concentration as a percentage
+
+    Examples
+    --------
+    >>> customer_concentration(4000, 10000)
+    40.0
+    """
+    top_customer_revenue_arr = _ensure_array(top_customer_revenue)
+    total_revenue_arr = _ensure_array(total_revenue)
+
+    result = np.zeros_like(total_revenue_arr, dtype=np.float64)
+
+    non_zero_mask = total_revenue_arr != 0
+    result[non_zero_mask] = (top_customer_revenue_arr[non_zero_mask] / total_revenue_arr[non_zero_mask]) * 100.0
+
+    if (np.isscalar(top_customer_revenue) and np.isscalar(total_revenue)):
+        return float(result[0])
+
+    return result
+
+def bounce_rate(
+    single_page_sessions: ArrayLike,
+    total_sessions: ArrayLike
+) -> Union[float, NDArray[np.float64]]:
+    """
+    Calculate Bounce Rate.
+
+    Bounce Rate is the percentage of sessions in which a visitor leaves after
+    viewing only a single page without further interaction. Lower is better.
+
+    Parameters
+    ----------
+    single_page_sessions : array-like
+        Number of single-page (bounced) sessions
+    total_sessions : array-like
+        Total number of sessions
+
+    Returns
+    -------
+    float or numpy.ndarray
+        Bounce Rate as a percentage
+
+    Examples
+    --------
+    >>> bounce_rate(400, 1000)
+    40.0
+    """
+    single_page_sessions_arr = _ensure_array(single_page_sessions)
+    total_sessions_arr = _ensure_array(total_sessions)
+
+    result = np.zeros_like(total_sessions_arr, dtype=np.float64)
+
+    non_zero_mask = total_sessions_arr != 0
+    result[non_zero_mask] = (single_page_sessions_arr[non_zero_mask] / total_sessions_arr[non_zero_mask]) * 100.0
+
+    if (np.isscalar(single_page_sessions) and np.isscalar(total_sessions)):
+        return float(result[0])
+
+    return result
+
+def cart_abandonment_rate(
+    completed_purchases: ArrayLike,
+    initiated_checkouts: ArrayLike
+) -> Union[float, NDArray[np.float64]]:
+    """
+    Calculate Cart Abandonment Rate.
+
+    Cart Abandonment Rate is the percentage of shopping carts that are created
+    but not converted into a completed purchase. Lower is better.
+
+    Parameters
+    ----------
+    completed_purchases : array-like
+        Number of completed purchases
+    initiated_checkouts : array-like
+        Number of initiated checkouts (carts created)
+
+    Returns
+    -------
+    float or numpy.ndarray
+        Cart Abandonment Rate as a percentage
+
+    Examples
+    --------
+    >>> cart_abandonment_rate(300, 1000)
+    70.0
+    """
+    completed_purchases_arr = _ensure_array(completed_purchases)
+    initiated_checkouts_arr = _ensure_array(initiated_checkouts)
+
+    result = np.zeros_like(initiated_checkouts_arr, dtype=np.float64)
+
+    non_zero_mask = initiated_checkouts_arr != 0
+    result[non_zero_mask] = (1.0 - (completed_purchases_arr[non_zero_mask] / initiated_checkouts_arr[non_zero_mask])) * 100.0
+
+    if (np.isscalar(completed_purchases) and np.isscalar(initiated_checkouts)):
+        return float(result[0])
+
+    return result
+
+def days_sales_outstanding(
+    accounts_receivable: ArrayLike,
+    total_credit_sales: ArrayLike,
+    days: ArrayLike = 365
+) -> Union[float, NDArray[np.float64]]:
+    """
+    Calculate Days Sales Outstanding (DSO).
+
+    DSO measures the average number of days it takes a company to collect
+    payment after a sale has been made on credit. A lower DSO indicates faster
+    collection of receivables.
+
+    Parameters
+    ----------
+    accounts_receivable : array-like
+        Outstanding accounts receivable
+    total_credit_sales : array-like
+        Total credit sales for the period
+    days : array-like, default 365
+        Number of days in the period
+
+    Returns
+    -------
+    float or numpy.ndarray
+        Days Sales Outstanding (inf when there are no credit sales)
+
+    Examples
+    --------
+    >>> days_sales_outstanding(50000, 500000, 365)
+    36.5
+    """
+    accounts_receivable_arr = _ensure_array(accounts_receivable)
+    total_credit_sales_arr = _ensure_array(total_credit_sales)
+    days_arr = np.broadcast_to(_ensure_array(days), total_credit_sales_arr.shape)
+
+    result = np.full_like(total_credit_sales_arr, np.inf, dtype=np.float64)
+
+    non_zero_mask = total_credit_sales_arr != 0
+    result[non_zero_mask] = (accounts_receivable_arr[non_zero_mask] / total_credit_sales_arr[non_zero_mask]) * days_arr[non_zero_mask]
+
+    if (np.isscalar(accounts_receivable) and
+        np.isscalar(total_credit_sales) and
+        np.isscalar(days)):
+        return float(result[0])
+
+    return result
