@@ -2,7 +2,7 @@
 
 ![Pypulate Logo](docs/assets/logo.png)
 
-[![PyPI](https://img.shields.io/badge/pypi-v0.3.0-blue)](https://pypi.org/project/pypulate/)
+[![PyPI](https://img.shields.io/badge/pypi-v0.4.1-blue)](https://pypi.org/project/pypulate/)
 ![Python](https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Tests](https://img.shields.io/badge/tests-100%25-brightgreen)
