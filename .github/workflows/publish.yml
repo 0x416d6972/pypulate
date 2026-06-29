@@ -29,20 +29,17 @@ jobs:
           python-version: "3.9"
           cache: pip
 
-      - name: Install Hatch
+      - name: Install build tooling
         run: |
           python -m pip install --upgrade pip
-          pip install hatch
+          pip install build
 
       - name: Clean previous builds
         run: |
           rm -rf dist/ build/ *.egg-info/
-          
-      - name: Show current version
-        run: hatch version
 
       - name: Build package
-        run: hatch build
+        run: python -m build
 
       - name: List built packages
         run: ls -l dist/
